@@ -13,10 +13,30 @@ http.listen(3001, function(){
 });
 
 io.on('connection', function(socket){
-	console.log('A User connected');
-	socket.on('disconnect', ()=>{console.log('A user disconnected');});
+	socket.on('new user', (obj)=>{
+		socket.username = obj.name;
+		io.emit('user connected', {name: socket.username});
+		console.log(socket.username + ' connected');
+	});
+
+	socket.on('disconnect', ()=>{
+		if(socket.username){
+			console.log(socket.username + ' disconnected');
+			io.emit('user disconnected', {name: socket.username});
+		}
+	});
+
+	socket.on('activity', ()=>{
+		socket.broadcast.emit('activity', {name: socket.username});
+	});
+
+	socket.on('activitystop', ()=>{
+		socket.broadcast.emit('activitystop', {name: socket.username});
+	});
+
   	socket.on('message', function(msg){
-    	console.log(msg.name+': ' + msg.message);
-    	socket.broadcast.emit('message', msg);
+    	console.log(socket.username+': ' + msg.message);
+    	io.emit('message', {name: socket.username, message: msg.message});
+    	socket.broadcast.emit('activitystop', {name: socket.username});
   	});
 });

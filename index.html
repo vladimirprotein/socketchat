@@ -1,46 +1,105 @@
 <!doctype html>
 <html>
   <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Socket chatt</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
     <style>
-      * { margin: 10px; padding: 0; box-sizing: border-box; }
+      /** { margin: 10px; padding: 0; box-sizing: border-box; }
       body { font: 12px Helvetica, Arial; }
       form {  padding: 3px; position: fixed; bottom: 0; width: 90%; }
       form input { padding: 10px; width: 70%; margin-left: 5px; }
       form button { background: rgb(130, 224, 255); padding: 10px; }
       #messages { list-style-type: none; }
       #messages li { padding: 5px 10px; }
-      #messages li:nth-child(odd) { background: #eee; }
+      #messages li:nth-child(odd) { background: #eee; }*/
     </style>
   </head>
-<script src="/socket.io/socket.io.js"></script>
-<script src="https://code.jquery.com/jquery-1.11.1.js"></script>
-<script>
-  $(function () {
-    var socket = io();
-    $('form').submit((e)=>{
-      e.preventDefault();
-      socket.emit('message', {name: $('#name').val() , message: $('#m').val()} );
-      var cell = document.createElement('LI');
-      cell.classList.add('float-right');
-      cell.innerHtml= $('#name').val() + ': ' + $('#m').val();
-      document.getElementById('messages').appendChild(cell);
-      $('#m').val();
-      return false;
-    });
 
-    socket.on('message', (obj) =>{
-      $('#messages').append($('<li>').text(obj.name+":  "+ obj.message));
-    });
-  });
-</script>
   <body>
-    <h2>Socket Chat</h2>
-    <ul id="messages"></ul>
-    <form action="">
-      Name:<input id="name" autocomplete="off" /><br><br>
-      Message:<input id="m" autocomplete="off" /><button>Send</button>
-    </form>
+    <div id="header" style="position: fixed; top: 5px; left: 40%;" class="text-center">
+      <h1 class="text-center">Socket Chat</h1>
+      <h5 class="text-center" id="status"></h5>
+    </div>
+    <div class="row mt-5">
+      <div class="col-sm-6">
+        <div class="container-fluid" id="setusername">
+          <h5>What should we set your username?</h5>
+          <form id="usernameform" action="">
+            <input type="text" name="username" id="username" autocomplete="off">
+            <input id="usernamesubmit" type="submit" name="submit" value="Submit">
+          </form>
+        </div>
+        <div style="position: fixed; bottom: 15px;" class="container" id="chatbox" hidden="true" class="bg-info">
+          <form style="" class="" action="" id="chatform">
+            Message:
+            <input id="m" autocomplete="off">
+            <button>Send</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="col-sm-6 mt-5">
+        <div class="container" id="textbox">
+          <ul id="messages">
+          
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+    <script>
+      $(function () {
+        var socket = io();
+        $('#chatform').submit((e)=>{
+          e.preventDefault();
+          socket.emit('message', {message: $('#m').val()} );
+          $('#m').val('');
+          return false;
+        });
+
+        $('#usernameform').submit((e)=>{
+          e.preventDefault();
+          socket.emit('new user', {name: $('#username').val() });
+          $('#setusername').attr("hidden", true);
+          $('#chatbox').attr("hidden", false);
+
+        })
+
+        $('#m').on({
+          keyup: ()=>{
+            socket.emit('activity', {});
+          },
+          focusout: ()=>{
+            socket.emit('activitystop', {});
+          },
+
+
+        });
+
+        socket.on('activity', (obj)=>{
+          $('#status').text(obj.name + ' is typing...');
+        });
+
+        socket.on('activitystop', (obj)=>{
+          $('#status').text('');
+        });
+
+        socket.on('message', (obj) =>{
+          $('#messages').append($('<li>').text(obj.name+":  "+ obj.message));
+        });
+
+        socket.on('user connected', (obj)=>{
+          $('#messages').append($('<li>').text(obj.name+ ' joined the conversation..'));
+        });
+        socket.on('user disconnected', (obj)=>{
+          $('#messages').append($('<li>').text(obj.name+ ' left the conversation..'));
+        });
+      });
+    </script>
   </body>
+
+
 </html>
