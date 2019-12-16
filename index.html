@@ -30,42 +30,89 @@
             <input id="usernamesubmit" type="submit" name="submit" value="Submit">
           </form>
         </div>
-        <div style="position: fixed; bottom: 15px;" class="container" id="chatbox" hidden="true" class="bg-info">
+        <div class="container-fluid" id="DMcontainer" hidden="true">
+          <div class="container">
+            <p><b>Send DMs:</b></p>
+            <form class="form-group" id='privatetextform'>
+              <div class="form-control">
+                To: 
+                <input type="text" name="" id="to" autocomplete="off">
+              </div>
+              <div class="form-control">
+                Text:
+                <input type="text" name="" id='dmtext' autocomplete="off">
+              </div>
+              <div class="form-control">
+                <button type="submit" class="btn-info" id="senddm">Send</button>
+              </div>
+            </form>
+          </div>
+          <div class="container" id="privatetextbox">
+            <ul id="privatemessages">
+              <h5><b>Private Texts:</b></h5>
+            </ul>
+          </div>
+        </div>
+        
+      </div>
+
+      <div class="col-sm-6 mt-5 border-left">
+        <div style="position: fixed; top: 50px;" class="container" id="chatbox" hidden='true' class="bg-info">
           <form style="" class="" action="" id="chatform">
             Message:
             <input id="m" autocomplete="off">
-            <button>Send</button>
+            <button class="btn-success">Send</button>
           </form>
         </div>
-      </div>
-
-      <div class="col-sm-6 mt-5">
-        <div class="container" id="textbox">
+        <div class="container" id="textbox" hidden="true">
           <ul id="messages">
-          
+            <h4>Public Chat Room:</h4>
           </ul>
         </div>
+        
       </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+
+
+
+
     <script>
       $(function () {
         var socket = io();
         $('#chatform').submit((e)=>{
           e.preventDefault();
-          socket.emit('message', {message: $('#m').val()} );
+          socket.emit('message', {message: $('#m').val()}, (str)=>{
+            alert(str);
+          } );
           $('#m').val('');
           return false;
         });
+        $('#privatetextform').submit((e)=>{
+          e.preventDefault();
+          socket.emit('dm', {message: $('#dmtext').val(), to: $('#to').val()}, (str)=>{
+            alert(str);
+          });
+          $('#dmtext').val('');
+          return false;
+        });
+
 
         $('#usernameform').submit((e)=>{
           e.preventDefault();
-          socket.emit('new user', {name: $('#username').val() });
-          $('#setusername').attr("hidden", true);
-          $('#chatbox').attr("hidden", false);
-
+          socket.emit('new user', {name: $('#username').val()}, function(data){
+            if(data){
+              $('#setusername').attr("hidden", true);
+              $('#chatbox').attr("hidden", false);
+              $('#textbox').attr("hidden", false);
+              $('#DMcontainer').attr("hidden", false);
+            }
+            else{
+              alert('Username already exists. Be unique..');
+            }
+          });
         })
 
         $('#m').on({
@@ -75,8 +122,6 @@
           focusout: ()=>{
             socket.emit('activitystop', {});
           },
-
-
         });
 
         socket.on('activity', (obj)=>{
@@ -88,14 +133,25 @@
         });
 
         socket.on('message', (obj) =>{
-          $('#messages').append($('<li>').text(obj.name+":  "+ obj.message));
+          $('#messages').append($('<li>').html("<b>"+obj.name+":</b>  "+ obj.message));
         });
 
+        socket.on('dm', (obj)=>{
+          $('#privatemessages').append($('<li>').html("<b>"+obj.name+":</b>  "+ obj.message));
+        });
+
+        socket.on('123', (str)=>{
+          $('#messages').append($('<li>').html(str));
+        })
+
         socket.on('user connected', (obj)=>{
-          $('#messages').append($('<li>').text(obj.name+ ' joined the conversation..'));
+          $('#messages').append($('<li>').html("<b>"+obj.name+ '</b> joined the conversation..'));
         });
         socket.on('user disconnected', (obj)=>{
-          $('#messages').append($('<li>').text(obj.name+ ' left the conversation..'));
+          $('#messages').append($('<li>').html('<b>'+obj.name+ '</b> left the conversation..'));
+        });
+        socket.on('people online', (array)=>{
+          console.log(array);
         });
       });
     </script>
