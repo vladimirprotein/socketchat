@@ -1,0 +1,204 @@
+<!doctype html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Socket chatt</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <style>
+      /** { margin: 10px; padding: 0; box-sizing: border-box; }
+      body { font: 12px Helvetica, Arial; }
+      form {  padding: 3px; position: fixed; bottom: 0; width: 90%; }
+      form input { padding: 10px; width: 70%; margin-left: 5px; }
+      form button { background: rgb(130, 224, 255); padding: 10px; }
+      #messages { list-style-type: none; }
+      #messages li { padding: 5px 10px; }
+      #messages li:nth-child(odd) { background: #eee; }*/
+    </style>
+  </head>
+
+  <body>
+    <div id="header" style="position: fixed; top: 5px; left: 40%;" class="text-center">
+      <h1 class="text-center">Socket Chat</h1>
+      <h5 class="text-center" id="status"></h5>
+    </div>
+    <div class="row mt-5">
+      <div class="col-sm-6">
+        <div class="container-fluid" id="setusername">
+          <h5>What should we set your username?</h5>
+          <form id="usernameform" action="">
+            <input type="text" name="username" id="username" autocomplete="off">
+            <input id="usernamesubmit" type="submit" name="submit" value="Submit">
+          </form>
+        </div>
+        <div class="container-fluid" id="DMcontainer" hidden="true">
+          <div class="container mb-4">
+            <p><b>Send DMs:</b></p>
+            <form class="" id='privatetextform'>
+              <div class="mb-2">
+                To: 
+                <input type="text" name="" id="to" autocomplete="off">
+              </div>
+              <div class="mb-2">
+                Text:
+                <input type="text" name="" id='dmtext' autocomplete="off">
+              </div>
+              <div class="">
+                <button type="submit" class="btn-info" id="senddm">Send</button>
+              </div>
+            </form>
+          </div>
+          <div class="container" id="privatetextbox">
+            <ul id="privatemessages">
+              <h5><b>Private Texts:</b></h5>
+            </ul>
+          </div>
+        </div>
+
+        <div class="container-fluid" id="chatroomcontainer" hidden="true">
+          <h2 class='text-success'>Chat ROOM</h2>
+          <form class='form' id="createroom">
+            <div class="form-group">
+              <span>Create Room:</span>
+              <input type="text" name="roomID" id="createroomID" class="form-control" autocomplete="off">
+            </div>
+            <div class="form-group">
+              <button type="submit" id="createroomsubmit" class="form-control">Create</button>
+            </div>
+          </form>
+          <form class='form' id="joinroom">
+            <div class="form-group">
+              <span>Join Room:</span>
+              <input type="text" name="roomID" id="joinroomID" autocomplete="off" class="form-control">
+            </div>
+            <div class="form-group">
+              <button type="submit" id="joinroomsubmit" class="form-control">JOIN</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="col-sm-6 mt-5 border-left" id="textingdiv" hidden="true">
+        <div style="position: fixed; top: 50px;" class="container" id="chatbox" class="bg-info">
+          <form style="" class="" action="" id="chatform">
+            Message:
+            <input id="m" autocomplete="off">
+            <button class="btn-success">Send</button>
+          </form>
+        </div>
+        <div class="container" id="textbox">
+          <ul id="messages">
+            <h4 id="chatroomID"></h4>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+
+
+
+
+    <script>
+      $(function () {
+        var socket = io();
+        $('#chatform').submit((e)=>{
+          e.preventDefault();
+          socket.emit('room message', {message: $('#m').val(), roomID: $('#chatroomID').html()}, (str)=>{
+            alert(str);
+          } );
+          $('#m').val('');
+          return false;
+        });
+        $('#privatetextform').submit((e)=>{
+          e.preventDefault();
+          socket.emit('dm', {message: $('#dmtext').val(), to: $('#to').val()}, (str)=>{
+            alert(str);
+          });
+          $('#dmtext').val('');
+          return false;
+        });
+
+
+        $('#usernameform').submit((e)=>{
+          e.preventDefault();
+          socket.emit('new user', {name: $('#username').val()}, function(data){
+            if(data){
+              $('#setusername').attr("hidden", true);
+              $('#chatroomcontainer').attr("hidden", false);
+              $('#DMcontainer').attr("hidden", false);
+            }
+            else{
+              alert('Username already exists. Be unique..');
+            }
+          });
+        })
+
+        $('#createroom').submit((e)=>{
+          e.preventDefault();
+          socket.emit('new room', {id: $('#createroomID').val()}, (data1)=>{
+            if(data1){
+              $('#chatroomcontainer').attr("hidden", true);
+              $('#textingdiv').attr("hidden", false);
+
+              $('#chatroomID').html($('#createroomID').val());
+            }
+            else{
+              alert('Room ID not unique.');
+            }
+          });
+        });
+
+        $('#joinroom').submit((e)=>{
+          e.preventDefault();
+          socket.emit('join room', {id: $('#joinroomID').val()}, (data)=>{
+            if(data){
+              $('#chatroomcontainer').attr("hidden", true);
+              $('#textingdiv').attr("hidden", false);
+            }
+            else{
+              alert('Room ID does not exist');
+            }
+          })
+        })
+
+        $('#m').on({
+          keyup: ()=>{
+            socket.emit('activity', {});
+          },
+          focusout: ()=>{
+            socket.emit('activitystop', {});
+          },
+        });
+
+        socket.on('activity', (obj)=>{
+          $('#status').text(obj.name + ' is typing...');
+        });
+
+        socket.on('activitystop', (obj)=>{
+          $('#status').text('');
+        });
+
+        socket.on('room message', (obj) =>{
+          $('#messages').append($('<li>').html("<b>"+obj.name+":</b>  "+ obj.message));
+        });
+
+        socket.on('dm', (obj)=>{
+          $('#privatemessages').append($('<li>').html("<b>"+obj.name+":</b>  "+ obj.message));
+        });
+
+        socket.on('user connected', (obj)=>{
+          $('#messages').append($('<li>').html("<b>"+obj.name+ '</b> joined the conversation..'));
+        });
+        socket.on('user disconnected', (obj)=>{
+          $('#messages').append($('<li>').html('<b>'+obj.name+ '</b> left the conversation..'));
+        });
+        socket.on('people online', (array)=>{
+          console.log(array);
+        });
+      });
+    </script>
+  </body>
+
+
+</html>
