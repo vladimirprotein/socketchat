@@ -63,7 +63,17 @@ io.on('connection', function(socket){
   })
 
   socket.on('join room', (obj, callback)=>{
-
+    if(socket.username in people){
+      if(!(obj.id in rooms)){
+        callback(false);
+        return;
+      }
+      callback(true);
+      socket.join(obj.id);
+    }
+    else{
+      ;
+    }
   })
 
 	socket.on('activity', ()=>{

@@ -155,6 +155,8 @@
             if(data){
               $('#chatroomcontainer').attr("hidden", true);
               $('#textingdiv').attr("hidden", false);
+              $('#chatroomID').html($('#joinroomID').val());
+
             }
             else{
               alert('Room ID does not exist');
